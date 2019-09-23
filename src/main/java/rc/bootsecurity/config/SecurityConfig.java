@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import rc.bootsecurity.services.UserPrincipalDetailService;
 
 @Configuration
@@ -24,23 +25,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(AuthenticationManagerBuilder auth) {
         auth.authenticationProvider(daoAuthenticationProvider());
-
-        // for inmemory authentication (no need for database for storing users)
-//        auth
-//                .inMemoryAuthentication()
-//                .withUser("admin")
-//                .password(passwordEncoder().encode("admin"))
-//                // .roles("ADMIN")  // in case role should be used with authorities , it should be defined within authorities method using 'ROLE_' prefix
-//                .authorities("ACCESS_TEST1", "ACCESS_TEST2", "ROLE_ADMIN")
-//                .and()
-//                .withUser("kshitiz")
-//                .password(passwordEncoder().encode("kshitiz"))
-//                .roles("USER")
-//                .and()
-//                .withUser("manager")
-//                .password(passwordEncoder().encode("manager"))
-//                // .roles("MANAGER")
-//                .authorities("ACCESS_TEST1", "ROLE_MANAGER");
     }
 
     @Override
@@ -57,7 +41,22 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/public/test2").hasAuthority("ACCESS_TEST2")
                 .antMatchers("/api/public/users").hasRole("ADMIN")
                 .and()
-                .httpBasic();
+                .formLogin()
+                .loginProcessingUrl("/signin") // if method not used, the post action of form login should contain "/login" (default) url.
+                .loginPage("/login").permitAll()  // redirects to "/login" url
+                .usernameParameter("txtUsername") // if method not used, form control should be "username" (default).
+                .passwordParameter("txtPassword") // if method not used, form control should be "password" (default).
+                .and()
+                .logout()
+                .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
+                .logoutSuccessUrl("/login")
+                .and()
+                .rememberMe()
+                .rememberMeParameter("checkRememberMe") // if method not used, form control should be "remember-me" (default).
+                .tokenValiditySeconds(2592000) //cookie expires after 30 days
+                .key("unique") // if method not used, defaults t]is randomly generated value
+                .userDetailsService(this.userPrincipalDetailService); // used to look up the UserDetails when a remember me token is valid
+
 
         //To enable access to the H2 database console under Spring Security you need to change three things
         //Allow all access to the url path /h2-console/*.
